@@ -1,0 +1,42 @@
+---
+# tasks file for Pure_List_HBA_WWNS
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - name: List all the WWNs for the port named- {{ PortName }}
+    shell: sshpass -p "pureuser" ssh -o StrictHostKeyChecking=no pureuser@flasharray1 "pureport list --initiator --raw --filter \"name='{{ PortName }}'\" "
+    register: op
+    ignore_errors: true
+  - debug:
+      var: op
+  - set_fact:
+      status_code: 2
+      response_message: "{{ op.stderr }}"
+    when: op is failed
+  - set_fact:
+      status_code: 2
+      response_message: "Failed to list the WWNs for the specified port name.Below error encountered\n{{ op.stderr }}\n {{ op.stdout }}"
+    when:
+    - op is failed
+
+
+  - set_fact:
+      status_code: 2
+      response_message: "HBA Port with the name- {{ PortName }} does not exists in pure.List of WWNs has come empty.\n{{ op.stderr }}\n {{ op.stdout }}"
+    when:
+    - op is success and op.stdout==""
+
+
+
+  - set_fact:
+      response_message: "Successfully listed the WWNs of the HBA port named -{{ PortName }}\n{{ op.stdout }}"
+    when:
+    - status_code is not defined
+    - op is success
+   
+  - debug:
+      var: status_code
+    when: status_code is defined
+  - debug:
+      var: response_message
+
